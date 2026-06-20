@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import time
@@ -5,24 +6,29 @@ import time
 def main():
     print("=== Iniciando SmartHelp (API + Site) ===")
     
-    # 1. Inicia a API FastAPI na porta 8000
-    print("Iniciando a API FastAPI na porta 8000...")
+    # 1. Porta interna para a API FastAPI
+    api_port = "8000"
+    
+    # 2. Porta externa (Render usa a variavel , local usa 8501)
+    streamlit_port = os.getenv("PORT", "8501")
+    
+    print(f"Iniciando a API FastAPI na porta interna {api_port}...")
     api_process = subprocess.Popen([
-        sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"
+        sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", api_port
     ])
     
-    # Aguarda 2 segundos para a API subir
-    time.sleep(2)
+    # Aguarda a API subir
+    time.sleep(3)
     
-    # 2. Inicia o Streamlit na porta 8501
-    print("Iniciando a Interface Streamlit na porta 8501...")
+    print(f"Iniciando a Interface Streamlit na porta {streamlit_port}...")
     streamlit_process = subprocess.Popen([
-        sys.executable, "-m", "streamlit", "run", "app/views/app_view.py", "--server.port", "8501", "--server.address", "0.0.0.0"
+        sys.executable, "-m", "streamlit", "run", "app/views/app_view.py", 
+        "--server.port", streamlit_port, 
+        "--server.address", "0.0.0.0"
     ])
     
     try:
         while True:
-            # Verifica se algum processo morreu
             if api_process.poll() is not None:
                 print("A API parou inesperadamente.")
                 break
@@ -35,7 +41,7 @@ def main():
     finally:
         api_process.terminate()
         streamlit_process.terminate()
-        print("Servicos parados com sucesso.")
+        print("Servicos parados.")
 
 if __name__ == "__main__":
     main()
