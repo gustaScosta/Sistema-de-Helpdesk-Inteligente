@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
+from sqlalchemy import Column, ForeignKey, Integer, String, create_engine, text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 load_dotenv()
@@ -52,6 +52,17 @@ class Equipamento(Base):
     patrimonio = Column(String(50), unique=True, nullable=False)
     status = Column(String(30), nullable=False)
     localizacao = Column(String(100), nullable=True)
+
+
+# Tenta adicionar a coluna 'senha' caso a tabela 'usuarios' ja exista no Neon sem ela
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS senha VARCHAR(255) DEFAULT '';"))
+        conn.commit()
+        print("Migracao: Coluna 'senha' verificada/adicionada com sucesso!")
+except Exception as e:
+    # Se der erro (ex: SQLite local nao suporta ADD COLUMN IF NOT EXISTS), apenas ignora
+    print("Aviso na migracao de banco:", e)
 
 
 if __name__ == "__main__":
