@@ -1,0 +1,1 @@
+from .models import Base, engine, SessionLocal, Usuario, Chamados, Equipamento

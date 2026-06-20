@@ -1,10 +1,7 @@
-from flask import Flask
-from .ticket import ticket_bp
+from fastapi import FastAPI
+from .auth import auth_router
+from .ticket import ticket_router
 
-from .auth import auth_bp
-
-def registrer_controler(app: Flask) -> None:
-    app.register_blueprint(ticket_bp, url_prefix="/tickets")
-    app.register_blueprint(auth_bp, url_prefix="/auth")
-
-    
+def register_controllers(app: FastAPI) -> None:
+    app.include_router(auth_router, prefix="/auth", tags=["auth"])
+    app.include_router(ticket_router, prefix="/tickets", tags=["tickets"])

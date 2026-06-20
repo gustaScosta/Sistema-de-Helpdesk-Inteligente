@@ -1,34 +1,44 @@
-# app/controller/auth.py
-from flask import Blueprint, request, jsonify, abort, session
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
+from ..models.models import SessionLocal, Usuario
 
-auth_bp = Blueprint("auth", __name__)
-
-@auth_bp.route("/login", methods=["POST"])
-def login():
-    """
-    POST /auth/login → autentica usuário.
-    Espera JSON: { "username": "...", "password": "..." }
-    (Para fins de estudo a senha está em texto plano; em produção use hash.)
-    """
-    data = request.get_json(silent=True)
-    if not data or "username" not in data or "password" not in data:
-        abort(400, description="username e password são obrigatórios")
-
-    from ..models.user import User
-    user = User.query.filter_by(username=data["username"]).first()
-    if user is None or user.password != data["password"]:
-        abort(401, description="Credenciais inválidas")
-
-    # Armazena o id do usuário na sessão Flask (cookie de navegador)
-    session["user_id"] = user.id
-    return jsonify({"msg": "login ok", "user_id": user.id}), 200
+auth_router = APIRouter()
 
 
-@auth_bp.route("/logout", methods=["POST"])
-def logout():
-    """
-    POST /auth/logout → encerra a sessão.
-    Remove o `user_id` da sessão.
-    """
-    session.pop("user_id", None)
-    return jsonify({"msg": "logout ok"}), 200
+class LoginRequest(BaseModel):
+    email: str
+    senha: str
+
+
+class UsuarioCreate(BaseModel):
+    nome: str
+    email: str
+    senha: str
+
+
+@auth_router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(body: UsuarioCreate):
+    db = SessionLocal()
+    try:
+        existente = db.query(Usuario).filter(Usuario.email == body.email).first()
+        if existente:
+            raise HTTPException(status_code=400, detail="Email ja cadastrado")
+        usuario = Usuario(nome=body.nome, email=body.email, senha=body.senha)
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+        return {"id": usuario.id, "nome": usuario.nome, "email": usuario.email}
+    finally:
+        db.close()
+
+
+@auth_router.post("/login")
+def login(body: LoginRequest):
+    db = SessionLocal()
+    try:
+        usuario = db.query(Usuario).filter(Usuario.email == body.email).first()
+        if usuario is None or usuario.senha != body.senha:
+            raise HTTPException(status_code=401, detail="Credenciais invalidas")
+        return {"msg": "login ok", "user_id": usuario.id, "nome": usuario.nome}
+    finally:
+        db.close()
