@@ -27,7 +27,7 @@ def notify_success(message):
 
 
 def notify_error(error):
-    # Mostra uma mensagem de erro amigavel.
+    # Mostra uma mensagem de erro.
     st.error(f"Nao foi possivel concluir a operacao: {error}")
 
 
